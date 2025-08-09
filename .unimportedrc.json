@@ -1,0 +1,14 @@
+{
+    "ignorePatterns": [
+      "**/*.test.*",
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/types/**",
+      "**/public/**"
+    ],
+    "entry": [
+      "pages/**/*.{ts,tsx,js,jsx}",
+      "app/**/*.{ts,tsx,js,jsx}"
+    ]
+  }
+  
