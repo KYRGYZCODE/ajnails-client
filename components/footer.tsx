@@ -6,11 +6,11 @@ const Footer: React.FC = () => {
   return (
     <footer className="mt-10 py-6 text-center text-gray-600 text-sm">
       <div className="max-w-xl mx-auto space-y-1">
-        <div>Толосунова Рахатгул Карыпбековна ИНН: 12010197400244</div>
+        <div>ФИО ИНН: </div>
         <div>
-          Адрес: Улица Фрунзе, 300/4 1 этаж –&nbsp;
+          Адрес:  –&nbsp;
           <a
-            href="https://2gis.kg/bishkek/firm/70000001092518268"
+            href="https://go.2gis.com/ZttEH"
             target="_blank"
             rel="noopener noreferrer"
             className="underline hover:text-gray-800"
@@ -18,7 +18,7 @@ const Footer: React.FC = () => {
             смотреть на 2GIS
           </a>
         </div>
-        <div>Контакты: +996 755‒47‒03‒86</div>
+        <div>Контакты: +996 000-00-00-00</div>
       </div>
     </footer>
   );

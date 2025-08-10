@@ -168,9 +168,9 @@ const grouped = useMemo(() => {
           Ajnails
         </h1> */}
 
-        <div className="flex justify-center">
+        {/* <div className="flex justify-center">
           <img src={Logo.src} alt="lol" width={200} height={200} />
-        </div>
+        </div> */}
 
         {error && (
           <div className="mx-auto mb-6 max-w-lg rounded-lg border border-rose-200 bg-rose-100 p-4 text-center text-rose-800">
@@ -848,9 +848,9 @@ const grouped = useMemo(() => {
                   </div>
 
                   {/* ------- логотип ------- */}
-                  <div className="mt-8 flex justify-center">
+                  {/* <div className="mt-8 flex justify-center">
                     <Image src={Logo} alt="logo" />
-                  </div>
+                  </div> */}
                 </Card>
               </form>
             </motion.div>
