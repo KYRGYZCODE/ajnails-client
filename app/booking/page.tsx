@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Crown, Sparkles, Star, Award } from "lucide-react";
+import { Crown, Sparkles, Star, Award, CheckCircle2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -46,6 +46,7 @@ export default function BookingPage() {
   /* ------------------------ локальное состояние ------------------------ */
   const [step, setStep] = useState<1 | 2 | 5>(1);
   const [dateError, setDateError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   // календарь
   const today = new Date();
@@ -86,19 +87,19 @@ export default function BookingPage() {
 
   // types
   type FlatService = {
-  id: number;
-  name: string;
-  is_long: boolean;
-  duration?: number | string;
-  price?: number | string;
-  additional_services?: Array<{
     id: number;
     name: string;
     is_long: boolean;
     duration?: number | string;
     price?: number | string;
-  }>;
-  parent?: { id: number; name: string };
+    additional_services?: Array<{
+      id: number;
+      name: string;
+      is_long: boolean;
+      duration?: number | string;
+      price?: number | string;
+    }>;
+    parent?: { id: number; name: string };
   };
 
   const flatSelected = useMemo<FlatService[]>(() => {
@@ -158,6 +159,21 @@ export default function BookingPage() {
 
     return Array.from(map.values());
   }, [flatSelected]);
+
+  // локальная обёртка, чтобы показать success после успешного сабмита
+  const onSubmitWithSuccess: React.FormEventHandler<HTMLFormElement> = async (e) => {
+    try {
+      // handleSubmit уже умеет работать с событием (как было раньше в onSubmit)
+      const maybePromise = (handleSubmit as any)(e);
+      if (maybePromise && typeof maybePromise.then === "function") {
+        await maybePromise;
+      }
+      setSuccess(true);
+    } catch {
+      // ошибка и так отобразится через error сверху
+      setSuccess(false);
+    }
+  };
 
   return (
     <>
@@ -651,7 +667,7 @@ export default function BookingPage() {
             </motion.div>
           )}
 
-          {/* -------------------- ШАГ 5: ДАННЫЕ КЛИЕНТА -------------------- */}
+          {/* -------------------- ШАГ 5: ДАННЫЕ КЛИЕНТА / УСПЕХ -------------------- */}
           {step === 5 && (
             <motion.div
               key="step5"
@@ -661,190 +677,228 @@ export default function BookingPage() {
               exit="exit"
               transition={{ duration: 0.4 }}
             >
-              <form onSubmit={handleSubmit}>
-                <Card className="mx-auto max-w-lg rounded-3xl bg-white bg-opacity-80 p-6 sm:p-8 shadow-2xl backdrop-blur-sm">
-                  <h2 className="mb-6 text-center text-xl sm:text-2xl font-semibold uppercase tracking-wide text-pink-600">
-                    3. Ваши данные
-                  </h2>
+              {success ? (
+                <Card className="mx-auto max-w-lg rounded-3xl bg-white bg-opacity-90 p-8 text-center shadow-2xl backdrop-blur-sm">
+                  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+                    <CheckCircle2 className="mx-auto h-14 w-14 text-green-500" />
+                    <h3 className="mt-4 text-2xl font-bold text-gray-800">Вы записаны!</h3>
+                    <p className="mt-2 text-gray-600">
+                      Мы свяжемся с вами для подтверждения.
+                    </p>
 
-                  {/* ------- резюме ------- */}
-                  <div className="mb-6 rounded-lg bg-pink-50 p-4 leading-relaxed text-gray-700">
-                    <p className="mb-2 font-semibold">Услуги:</p>
-                    <ul className="list-disc space-y-1 pl-5">
-                      {grouped.map(({ parent, children }) => (
-                        <li key={parent.id}>
-                          {parent.name}
-                          {children.length > 0 && (
-                            <ul className="list-disc pl-5 text-sm text-rose-700">
-                              {children.map((c) => (
-                                <li key={c.id}>{c.name}</li>
-                              ))}
-                            </ul>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="mt-2">
-                      <strong>Дата:</strong> {form.date}
+                    <div className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-gray-700">
+                      <div><strong>Дата:</strong> {form.date || "—"}</div>
                       {!isLongService && form.time && (
-                        <>
-                          {" "}
-                          <strong>Время:</strong> {form.time}
-                        </>
+                        <div><strong>Время:</strong> {form.time}</div>
                       )}
                       {isLongService && (
-                        <span className="text-xs sm:text-sm text-gray-500">
-                          {" "}
-                          (точное время сообщит администратор)
-                        </span>
+                        <div className="text-xs text-gray-500">
+                          Точное время назначит администратор
+                        </div>
                       )}
-                    </p>
-                    <p>
-                      <strong>Мастер:</strong> {selectedMaster?.name}
-                    </p>
-                  </div>
-
-                  {/* ------- поля ------- */}
-                  <div className="space-y-4">
-                    <div>
-                      <label htmlFor="clientName" className="block text-sm font-medium mb-1">
-                        Ваше имя
-                      </label>
-                      <Input
-                        id="clientName"
-                        value={form.clientName}
-                        onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))}
-                        required
-                        className="w-full border-pink-300 focus:border-pink-500"
-                      />
+                      <div><strong>Мастер:</strong> {selectedMaster?.name || "—"}</div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium mb-1" htmlFor="reminder">
-                        Напомнить за:
-                      </label>
-                      <Select
-                        value={String(form.reminder_minutes)}
-                        onValueChange={(val) =>
+                    <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                      <Button
+                        onClick={() => {
+                          // мягкий сброс до первого шага
+                          setStep(1);
+                          setSuccess(false);
+                        }}
+                        className="rounded-xl bg-gradient-to-r from-rose-600 to-pink-500 px-6 py-2 text-white shadow hover:opacity-90 transition"
+                      >
+                        Новая запись
+                      </Button>
+                    </div>
+                  </motion.div>
+                </Card>
+              ) : (
+                <form onSubmit={onSubmitWithSuccess}>
+                  <Card className="mx-auto max-w-lg rounded-3xl bg-white bg-opacity-80 p-6 sm:p-8 shadow-2xl backdrop-blur-sm">
+                    <h2 className="mb-6 text-center text-xl sm:text-2xl font-semibold uppercase tracking-wide text-pink-600">
+                      3. Ваши данные
+                    </h2>
+
+                    {/* ------- резюме ------- */}
+                    <div className="mb-6 rounded-lg bg-pink-50 p-4 leading-relaxed text-gray-700">
+                      <p className="mb-2 font-semibold">Услуги:</p>
+                      <ul className="list-disc space-y-1 pl-5">
+                        {grouped.map(({ parent, children }) => (
+                          <li key={parent.id}>
+                            {parent.name}
+                            {children.length > 0 && (
+                              <ul className="list-disc pl-5 text-sm text-rose-700">
+                                {children.map((c) => (
+                                  <li key={c.id}>{c.name}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-2">
+                        <strong>Дата:</strong> {form.date}
+                        {!isLongService && form.time && (
+                          <>
+                            {" "}
+                            <strong>Время:</strong> {form.time}
+                          </>
+                        )}
+                        {isLongService && (
+                          <span className="text-xs sm:text-sm text-gray-500">
+                            {" "}
+                            (точное время сообщит администратор)
+                          </span>
+                        )}
+                      </p>
+                      <p>
+                        <strong>Мастер:</strong> {selectedMaster?.name}
+                      </p>
+                    </div>
+
+                    {/* ------- поля ------- */}
+                    <div className="space-y-4">
+                      <div>
+                        <label htmlFor="clientName" className="block text-sm font-medium mb-1">
+                          Ваше имя
+                        </label>
+                        <Input
+                          id="clientName"
+                          value={form.clientName}
+                          onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))}
+                          required
+                          className="w-full border-pink-300 focus:border-pink-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1" htmlFor="reminder">
+                          Напомнить за:
+                        </label>
+                        <Select
+                          value={String(form.reminder_minutes)}
+                          onValueChange={(val) =>
+                            setForm((f) => ({
+                              ...f,
+                              reminder_minutes: Number(val),
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="w-full border-pink-300 focus:border-pink-500">
+                            <SelectValue placeholder="Выберите интервал" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="30">За 30 минут</SelectItem>
+                            <SelectItem value="60">За 1 час</SelectItem>
+                            <SelectItem value="120">За 2 часа</SelectItem>
+                            <SelectItem value="180">За 3 часа</SelectItem>
+                            <SelectItem value="1440">За 1 день</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="relative w-full">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 select-none text-gray-500 text-sm">
+                          +996
+                        </span>
+                        <Input
+                          type="tel"
+                          value={form.clientPhone.slice(3)}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
+                            setForm((f) => ({
+                              ...f,
+                              clientPhone: "996" + digits,
+                            }));
+                          }}
+                          maxLength={9}
+                          placeholder="XXX XXX XXX"
+                          className="pl-14 sm:pl-16 border-pink-300 focus:border-pink-500"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* ------- чекбоксы ------- */}
+                    <div className="mt-6 flex items-start gap-2 sm:gap-3">
+                      <input
+                        type="checkbox"
+                        id="acceptOffer"
+                        checked={form.acceptOffer}
+                        onChange={(e) =>
                           setForm((f) => ({
                             ...f,
-                            reminder_minutes: Number(val),
+                            acceptOffer: e.target.checked,
                           }))
                         }
-                      >
-                        <SelectTrigger className="w-full border-pink-300 focus:border-pink-500">
-                          <SelectValue placeholder="Выберите интервал" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="30">За 30 минут</SelectItem>
-                          <SelectItem value="60">За 1 час</SelectItem>
-                          <SelectItem value="120">За 2 часа</SelectItem>
-                          <SelectItem value="180">За 3 часа</SelectItem>
-                          <SelectItem value="1440">За 1 день</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="relative w-full">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 select-none text-gray-500 text-sm">
-                        +996
-                      </span>
-                      <Input
-                        type="tel"
-                        value={form.clientPhone.slice(3)}
-                        onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
-                          setForm((f) => ({
-                            ...f,
-                            clientPhone: "996" + digits,
-                          }));
-                        }}
-                        maxLength={9}
-                        placeholder="XXX XXX XXX"
-                        className="pl-14 sm:pl-16 border-pink-300 focus:border-pink-500"
                         required
+                        className="h-5 w-5 shrink-0 rounded-none accent-pink-500"
                       />
+                      <label htmlFor="acceptOffer" className="text-xs sm:text-sm leading-5">
+                        Я принимаю условия&nbsp;
+                        <a
+                          href="/docs/offer-v1.0.docx"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-pink-600 underline hover:text-pink-700"
+                        >
+                          договора-оферты
+                        </a>
+                      </label>
                     </div>
-                  </div>
 
-                  {/* ------- чекбоксы ------- */}
-                  <div className="mt-6 flex items-start gap-2 sm:gap-3">
-                    <input
-                      type="checkbox"
-                      id="acceptOffer"
-                      checked={form.acceptOffer}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          acceptOffer: e.target.checked,
-                        }))
-                      }
-                      required
-                      className="h-5 w-5 shrink-0 rounded-none accent-pink-500"
-                    />
-                    <label htmlFor="acceptOffer" className="text-xs sm:text-sm leading-5">
-                      Я принимаю условия&nbsp;
-                      <a
-                        href="/docs/offer-v1.0.docx"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-pink-600 underline hover:text-pink-700"
+                    <div className="mt-4 flex items-start gap-2 sm:gap-3">
+                      <input
+                        type="checkbox"
+                        id="acceptPolicy"
+                        checked={form.conf}
+                        onChange={(e) => setForm((f) => ({ ...f, conf: e.target.checked }))}
+                        required
+                        className="h-5 w-5 shrink-0 rounded-none accent-pink-500"
+                      />
+                      <label htmlFor="acceptPolicy" className="text-xs sm:text-sm leading-5">
+                        Я принимаю условия&nbsp;
+                        <a
+                          href="/docs/offer-v2.0.docx"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-pink-600 underline hover:text-pink-700"
+                        >
+                          политики конфиденциальности
+                        </a>
+                      </label>
+                    </div>
+
+                    {/* ------- кнопки ------- */}
+                    <div className="mt-8 flex flex-col gap-3 sm:gap-4 sm:flex-row sm:justify-between">
+                      <Button
+                        type="submit"
+                        disabled={
+                          submitting ||
+                          loading ||
+                          !form.clientName ||
+                          !form.clientPhone ||
+                          !form.acceptOffer ||
+                          !form.conf
+                        }
+                        className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-rose-600 to-pink-500 px-8 py-2 text-lg font-bold text-white shadow-lg transition hover:opacity-90"
                       >
-                        договора-оферты
-                      </a>
-                    </label>
-                  </div>
+                        {submitting ? "Отправка..." : "Подтвердить"}
+                      </Button>
 
-                  <div className="mt-4 flex items-start gap-2 sm:gap-3">
-                    <input
-                      type="checkbox"
-                      id="acceptPolicy"
-                      checked={form.conf}
-                      onChange={(e) => setForm((f) => ({ ...f, conf: e.target.checked }))}
-                      required
-                      className="h-5 w-5 shrink-0 rounded-none accent-pink-500"
-                    />
-                    <label htmlFor="acceptPolicy" className="text-xs sm:text-sm leading-5">
-                      Я принимаю условия&nbsp;
-                      <a
-                        href="/docs/offer-v2.0.docx"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-pink-600 underline hover:text-pink-700"
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setStep(2)}
+                        className="w-full sm:w-auto border-pink-300 text-pink-600 transition hover:bg-pink-50"
                       >
-                        политики конфиденциальности
-                      </a>
-                    </label>
-                  </div>
-
-                  {/* ------- кнопки ------- */}
-                  <div className="mt-8 flex flex-col gap-3 sm:gap-4 sm:flex-row sm:justify-between">
-                    <Button
-                      type="submit"
-                      disabled={
-                        submitting ||
-                        loading ||
-                        !form.clientName ||
-                        !form.clientPhone ||
-                        !form.acceptOffer ||
-                        !form.conf
-                      }
-                      className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-rose-600 to-pink-500 px-8 py-2 text-lg font-bold text-white shadow-lg transition hover:opacity-90"
-                    >
-                      {submitting ? "Отправка..." : "Подтвердить"}
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setStep(2)}
-                      className="w-full sm:w-auto border-pink-300 text-pink-600 transition hover:bg-pink-50"
-                    >
-                      Назад
-                    </Button>
-                  </div>
-                </Card>
-              </form>
+                        Назад
+                      </Button>
+                    </div>
+                  </Card>
+                </form>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
