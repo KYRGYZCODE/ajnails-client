@@ -5,7 +5,7 @@ import { Calendar, Globe, Menu, Scissors, UserCheck, X, Star, Award, Crown, Spar
 import { motion, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import Logo from "/public/bantik_logo.png";
+import Logo from "/public/new-logo.svg";
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
